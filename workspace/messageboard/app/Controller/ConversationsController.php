@@ -24,51 +24,45 @@ class ConversationsController extends AppController {
  */
 	public function index() {
 		$currentUserId = $this->Auth->user('id');
-
-		// Fetch conversations with the most recent message
-		$conversations = $this->Conversation->find('all', [
-			'conditions' => [
-				'OR' => [
+		$conversations = $this->Conversation->find('all', array(
+			'conditions' => array(
+				'OR' => array(
 					'Conversation.sender_id' => $currentUserId,
 					'Conversation.receiver_id' => $currentUserId
-				]
-			],
-			'contain' => ['Message' => [
-				'order' => ['Message.sent_date' => 'DESC'],
-				'limit' => 1 // Limit to the most recent message
-			]]
-		]);
+				)
+			)
+		));
 
-		// Fetch user data for displaying in the view
-		$usersData = $this->Conversation->User->find('all', [
-			'fields' => ['User.id', 'User.name', 'User.profile_picture']
-		]);
-
-		$users = [];
+		$usersData = $this->Conversation->User->find('all', array(
+			'fields' => array('User.id', 'User.name', 'User.profile_picture')
+		));
+		
+		$users = array();
 		foreach ($usersData as $user) {
-			$users[$user['User']['id']] = [
+			$users[$user['User']['id']] = array(
 				'name' => $user['User']['name'],
 				'profile_picture' => $user['User']['profile_picture']
-			];
+			);
 		}
 
-		// Prepare last message data for the view
 		foreach ($conversations as &$conversation) {
-			if (!empty($conversation['Message'])) {
-				$lastMessage = $conversation['Message'][0]; // Get the last message
-				$conversation['last_message'] = $lastMessage['content']; // Message text
-				// Format the last sent date using DateTime
-				$conversation['last_sent_date'] = !empty($lastMessage['sent_date']) ? 
-					(new DateTime($lastMessage['sent_date']))->format('M d, Y h:i A') : null; // Format as needed
+			$lastMessage = $this->Conversation->Message->find('first', array(
+				'conditions' => array('Message.conversation_id' => $conversation['Conversation']['id']),
+				'order' => array('Message.sent_date' => 'DESC')
+			));
+			if (!empty($lastMessage)) {
+				$conversation['last_message'] = $lastMessage['Message']['content'];
+				$conversation['last_sent_date'] = (new DateTime($lastMessage['Message']['sent_date']))->format('M d, Y h:i A');
+				$conversation['last_message_user_id'] = $lastMessage['Message']['user_id'];
 			} else {
-				$conversation['last_message'] = __('No messages yet');
-				$conversation['last_sent_date'] = null; // No messages
+				$conversation['last_message'] = __('No messages yet.');
+				$conversation['last_sent_date'] = null;
 			}
 		}
 		
-
 		$this->set(compact('conversations', 'users', 'currentUserId'));
 	}
+
 
 /**
  * view method
@@ -82,36 +76,57 @@ class ConversationsController extends AppController {
 			throw new NotFoundException(__('Invalid conversation'));
 		}
 
-		// Get the conversation details
 		$options = array('conditions' => array('Conversation.' . $this->Conversation->primaryKey => $id));
 		$conversation = $this->Conversation->find('first', $options);
-
-		// Get the logged-in user's ID
+		
 		$loggedInUserId = $this->Auth->user('id');
 
-		// Fetch user data for the other participant in the conversation
 		$otherUserId = ($conversation['Conversation']['sender_id'] == $loggedInUserId) ? 
 			$conversation['Conversation']['receiver_id'] : 
 			$conversation['Conversation']['sender_id'];
 
-		// Fetch other user data
 		$otherUser = $this->Conversation->User->findById($otherUserId);
 
-		// Fetch all users for displaying profile pictures
-		$usersData = $this->Conversation->User->find('all', [
-			'fields' => ['User.id', 'User.name', 'User.profile_picture']
-		]);
+		$usersData = $this->Conversation->User->find('all', array(
+			'fields' => array('User.id', 'User.name', 'User.profile_picture')
+		));
 
-		$users = [];
+		$users = array();
 		foreach ($usersData as $user) {
-			$users[$user['User']['id']] = [
+			$users[$user['User']['id']] = array(
 				'name' => $user['User']['name'],
 				'profile_picture' => $user['User']['profile_picture']
-			];
+			);
 		}
 
-		// Set the conversation, logged-in user ID, other user, and all users for the view
-		$this->set(compact('conversation', 'loggedInUserId', 'otherUser', 'users'));
+		$otherConversations = $this->Conversation->find('all', array(
+			'conditions' => array(
+				'OR' => array(
+					'Conversation.sender_id' => $loggedInUserId,
+					'Conversation.receiver_id' => $loggedInUserId
+				),
+			),
+			'order' => array('Conversation.id' => 'DESC')
+		));
+
+		foreach ($otherConversations as &$conv) {
+			$latestMessage = $this->Conversation->Message->find('first', [
+				'conditions' => ['Message.conversation_id' => $conv['Conversation']['id']],
+				'order' => ['Message.sent_date' => 'DESC']
+			]);
+			$conv['latestMessage'] = $latestMessage;
+		}
+
+		$this->Paginator->settings = array(
+			'conditions' => array('Message.conversation_id' => $id),
+			'order' => array('Message.sent_date' => 'ASC'),
+			'limit' => 5,
+			'page' => $this->request->query('page') ?: 1 
+		);
+
+		$messages = $this->Paginator->paginate('Message');
+
+		$this->set(compact('conversation', 'loggedInUserId', 'otherUser', 'users', 'messages', 'otherConversations'));
 	}
 
 /**
@@ -130,55 +145,57 @@ class ConversationsController extends AppController {
 		$this->set(compact('users'));
 
 		if ($this->request->is('post')) {
-			$data = $this->request->data;
+			$data = $this->request->data['Conversation'];
+			
+			$existingConversation = $this->Conversation->find('first', [
+				'conditions' => [
+					'OR' => [
+						['Conversation.sender_id' => $loggedInUserId, 'Conversation.receiver_id' => $data['receiver_id']],
+						['Conversation.sender_id' => $data['receiver_id'], 'Conversation.receiver_id' => $loggedInUserId]
+					]
+				]
+			]);
 
-			$conversationData = [
-				'sender_id' => $loggedInUserId,
-				'receiver_id' => $data['Conversation']['receiver_id']
-			];
-
-			$this->Conversation->create();
-			if ($this->Conversation->save($conversationData)) {
-				$conversationId = $this->Conversation->id;
-
+			$conversationId = $existingConversation ? $existingConversation['Conversation']['id'] : $this->createConversation($loggedInUserId, $data['receiver_id']);
+			
+			if ($conversationId) {
 				$messageData = [
 					'conversation_id' => $conversationId,
 					'user_id' => $loggedInUserId,
-					'content' => $data['Conversation']['message'],
-					'sent_date' => date('Y-m-d H:i:s', strtotime('+8 hours')),
+					'content' => $data['message'],
+					'sent_date' => date('Y-m-d H:i:s'),
 				];
 
-				$this->Conversation->Message->create();
 				if ($this->Conversation->Message->save($messageData)) {
-					$userConversationData = [
-						[
-							'user_id' => $loggedInUserId,
-							'conversation_id' => $conversationId,
-						],
-						[
-							'user_id' => $data['Conversation']['receiver_id'],
-							'conversation_id' => $conversationId,
-						]
-					];
-
-					foreach ($userConversationData as $ucData) {
-						$this->Conversation->UserConversation->create();
-						if (!$this->Conversation->UserConversation->save($ucData)) {
-							$this->Flash->error(__('The UserConversation entry could not be saved. Please try again.'));
-						}
-					}
-
-					$this->Flash->success(__('The conversation has been saved.'));
+					$this->Flash->success(__('The message has been sent.'));
 					return $this->redirect(['action' => 'index']);
 				} else {
 					$this->Flash->error(__('The message could not be saved. Please try again.'));
 				}
-			} else {
-				$errors = $this->Conversation->validationErrors;
-				$this->Flash->error(__('The conversation could not be saved. Errors: ' . json_encode($errors)));
 			}
 		}
 	}
+
+	private function createConversation($loggedInUserId, $receiverId) {
+		$this->Conversation->create();
+		if ($this->Conversation->save(['sender_id' => $loggedInUserId, 'receiver_id' => $receiverId])) {
+			$conversationId = $this->Conversation->id;
+			$this->saveUserConversations($conversationId, [$loggedInUserId, $receiverId]);
+			return $conversationId;
+		}
+		$this->Flash->error(__('The conversation could not be saved. Please try again.'));
+		return null;
+	}
+
+	private function saveUserConversations($conversationId, $userIds) {
+		foreach ($userIds as $userId) {
+			$this->Conversation->UserConversation->create();
+			if (!$this->Conversation->UserConversation->save(['user_id' => $userId, 'conversation_id' => $conversationId])) {
+				$this->Flash->error(__('The UserConversation entry could not be saved. Please try again.'));
+			}
+		}
+	}
+
 
 /**
  * edit method

@@ -32,7 +32,7 @@ class UsersController extends AppController {
 		if ($this->request->is('post')) {
 			if ($this->Auth->login()) {
 				$this->User->id = $this->Auth->user('id');
-				$currentTime = date('Y-m-d H:i:s', strtotime('+8 hours'));
+				$currentTime = date('Y-m-d H:i:s');
 				
 				if ($this->User->saveField('last_logged_in', $currentTime)) {
 					$user = $this->User->read(null, $this->User->id);
@@ -47,7 +47,6 @@ class UsersController extends AppController {
 			}
 		}
 	}
-
 	
 	public function logout(){
 		$this->Auth->logout();
@@ -103,7 +102,7 @@ class UsersController extends AppController {
 
 			$this->request->data['User']['password'] = AuthComponent::password($this->request->data['User']['password']);
 			$this->request->data['User']['confirm_password'] = AuthComponent::password($this->request->data['User']['confirm_password']);
-			$this->request->data['User']['joined_date'] = date('Y-m-d H:i:s', strtotime('+8 hours'));
+			$this->request->data['User']['joined_date'] = date('Y-m-d H:i:s');
 			if ($this->User->save($this->request->data)) {
 				$this->Session->write('User.registered', true);
 				return $this->redirect(array('action' => 'thankyou'));
@@ -116,7 +115,6 @@ class UsersController extends AppController {
 		$conversations = $this->User->Conversation->find('list');
 		$this->set(compact('conversations'));
 	}
-
 
 	public function thankyou() {
 		if (!$this->Session->check('User.registered')) {
@@ -132,78 +130,66 @@ class UsersController extends AppController {
  * @param string $id
  * @return void
  */
-public function edit($id = null) {
-    if (!$this->User->exists($id)) {
-        throw new NotFoundException(__('Invalid user'));
-    }
+	public function edit($id = null) {
+		if (!$this->User->exists($id) || !($user = $this->User->findById($id))) {
+			throw new NotFoundException(__('Invalid user'));
+		}
 
-    // Fetch the user data
-    $user = $this->User->findById($id);
-    if (!$user) {
-        throw new NotFoundException(__('Invalid user'));
-    }
+		if ($this->request->is(['post', 'put'])) {
+			$this->User->id = $id;
 
-    if ($this->request->is(array('post', 'put'))) {
-        $this->User->id = $id;
+			if (!empty($this->request->data['User']['old_password']) && 
+				AuthComponent::password($this->request->data['User']['old_password']) !== $user['User']['password']) {
+				$this->Flash->error(__('Old password is incorrect.'));
+				$this->request->data = $user; 
+				return;
+			}
 
-        if (!empty($this->request->data['User']['old_password'])) {
-            if (AuthComponent::password($this->request->data['User']['old_password']) !== $user['User']['password']) {
-                $this->Flash->error(__('Old password is incorrect.'));
-                $this->request->data = $user; 
-                $this->set(compact('user')); 
-                return; 
-            }
-        }
+			$this->handleProfilePictureUpload($user);
 
-        // Handle profile picture upload
-        if (!empty($this->request->data['User']['profile_picture']['tmp_name'])) {
-            $uploadPath = WWW_ROOT . 'uploads' . DS . 'profile_pictures' . DS;
-            $uploadFile = $uploadPath . basename($this->request->data['User']['profile_picture']['name']);
+			$fieldsToSave = ['name', 'birthday', 'gender', 'profile_picture', 'hobby'];
+			
+			if (!empty($this->request->data['User']['email'])) {
+				$fieldsToSave[] = 'email';
+			}
+			
+			if (!empty($this->request->data['User']['new_password'])) {
+				if ($this->request->data['User']['new_password'] === $this->request->data['User']['confirm_password']) {
+					$this->request->data['User']['password'] = AuthComponent::password($this->request->data['User']['new_password']);
+					$fieldsToSave[] = 'password';
+				} else {
+					$this->Flash->error(__('New passwords do not match. Please try again.'));
+					return; 
+				}
+			}
 
-            if (move_uploaded_file($this->request->data['User']['profile_picture']['tmp_name'], $uploadFile)) {
-                $this->request->data['User']['profile_picture'] = 'uploads/profile_pictures/' . basename($this->request->data['User']['profile_picture']['name']);
-            } else {
-                $this->Flash->error(__('There was an error uploading the profile picture. Please try again.'));
-                unset($this->request->data['User']['profile_picture']);
-            }
-        } else {
-            unset($this->request->data['User']['profile_picture']); 
-        }
+			if ($this->User->save($this->request->data, ['fieldList' => $fieldsToSave])) {
+				$this->Flash->success(__('The user has been saved.'));
+				return $this->redirect(['action' => 'view', $id]);
+			} else {
+				$this->Flash->error(__('The user could not be saved. Please, try again.'));
+			}
+		}
 
-        $fieldsToSave = ['name', 'birthday', 'gender', 'profile_picture', 'hobby'];
+		$this->request->data = $user; 
+		$this->set(compact('user')); 
+	}
 
-        if (!empty($this->request->data['User']['email'])) {
-            $fieldsToSave[] = 'email';
-        }
+	private function handleProfilePictureUpload($user) {
+		if (!empty($this->request->data['User']['profile_picture']['tmp_name'])) {
+			$uploadPath = WWW_ROOT . 'uploads' . DS . 'profile_pictures' . DS;
+			$uploadFile = $uploadPath . basename($this->request->data['User']['profile_picture']['name']);
 
-        if (!empty($this->request->data['User']['new_password'])) {
-            if ($this->request->data['User']['new_password'] === $this->request->data['User']['confirm_password']) {
-                $this->request->data['User']['password'] = AuthComponent::password($this->request->data['User']['new_password']);
-                $fieldsToSave[] = 'password';
-            } else {
-                $this->Flash->error(__('New passwords do not match. Please try again.'));
-                return; 
-            }
-        }
-
-        if ($this->User->save($this->request->data, ['fieldList' => $fieldsToSave])) {
-            $this->Flash->success(__('The user has been saved.'));
-            return $this->redirect('view/' . $id);
-        } else {
-            $this->Flash->error(__('The user could not be saved. Please, try again.'));
-        }
-    } else {
-        $this->request->data = $user; 
-    }
-
-    $this->set(compact('user')); 
-}
-
-
-
-
-
-
+			if (move_uploaded_file($this->request->data['User']['profile_picture']['tmp_name'], $uploadFile)) {
+				$this->request->data['User']['profile_picture'] = 'uploads/profile_pictures/' . basename($this->request->data['User']['profile_picture']['name']);
+			} else {
+				$this->Flash->error(__('There was an error uploading the profile picture. Please try again.'));
+				unset($this->request->data['User']['profile_picture']);
+			}
+		} else {
+			unset($this->request->data['User']['profile_picture']);
+		}
+	}
 
 /**
  * delete method

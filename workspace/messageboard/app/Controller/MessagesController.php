@@ -27,28 +27,26 @@ class MessagesController extends AppController {
     }
 
     public function add($conversationId) {
-		if ($this->request->is('post')) {
-			$this->Message->create();
-			
-			$this->request->data['Message']['conversation_id'] = $conversationId;
-			$this->request->data['Message']['user_id'] = $this->Auth->user('id'); 
-	
-			if (!empty($this->request->data['Message']['content'])) {
-				$this->request->data['Message']['sent_date'] = date('Y-m-d H:i:s', strtotime('+8 hours'));
-	
-				if ($this->Message->save($this->request->data)) {
-					$this->Flash->success(__('Message sent.'));
-					return $this->redirect(['controller' => 'Conversations', 'action' => 'view', $conversationId]); 
-				} else {
-					$this->Flash->error(__('The message could not be saved. Please, try again.'));
-				}
-			} else {
-				$this->Flash->error(__('Content cannot be empty.'));
-			}
-		}
-	}
-	
-	
+        if ($this->request->is('post')) {
+            $this->Message->create();
+            
+            $this->request->data['Message']['conversation_id'] = $conversationId;
+            $this->request->data['Message']['user_id'] = $this->Auth->user('id'); 
+    
+            if (!empty($this->request->data['Message']['content'])) {
+                $this->request->data['Message']['sent_date'] = date('Y-m-d H:i:s');
+    
+                if ($this->Message->save($this->request->data)) {
+                    // $this->Flash->success(__('Message sent.'));
+                    return $this->redirect(array('controller' => 'Conversations', 'action' => 'view', $conversationId)); 
+                } else {
+                    $this->Flash->error(__('The message could not be saved. Please, try again.'));
+                }
+            } else {
+                $this->Flash->error(__('Content cannot be empty.'));
+            }
+        }
+    }
 
     public function edit($id = null) {
         if (!$this->Message->exists($id)) {
@@ -70,16 +68,16 @@ class MessagesController extends AppController {
         $this->set(compact('conversations', 'users'));
     }
 
-    public function delete($id = null) {
+    public function delete($id = null, $conversationId) {
         if (!$this->Message->exists($id)) {
             throw new NotFoundException(__('Invalid message'));
         }
         $this->request->allowMethod('post', 'delete');
         if ($this->Message->delete($id)) {
-            $this->Flash->success(__('The message has been deleted.'));
+            // $this->Flash->success(__('The message has been deleted.'));
         } else {
             $this->Flash->error(__('The message could not be deleted. Please, try again.'));
         }
-        return $this->redirect(array('action' => 'index'));
+        return $this->redirect(array('controller' => 'Conversations', 'action' => 'view', $conversationId)); 
     }
 }

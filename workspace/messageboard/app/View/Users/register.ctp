@@ -2,7 +2,6 @@
 	<div class="card">
 		<div class="card-body">
 			<h1>Registration</h1>
-			
 			<?php
 				echo $this->Form->create('User', array('class' => 'form-horizontal'));
 				echo $this->Form->input('name', array('class' => 'form-control', 'label' => 'Name'));
@@ -16,7 +15,6 @@
 					echo $this->Form->end();
 				?>
 			</div>
-
 			<div class="mt-3 text-center">
 				<?php 
 					echo 'Already have an account? ' .$this->Html->link('Sign in', array('controller' => 'users', 'action' => 'login'), array('class' => 'btn btn-link mb-1'));

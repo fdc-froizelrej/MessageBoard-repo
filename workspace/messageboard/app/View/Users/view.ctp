@@ -3,9 +3,11 @@
         <div class="card-body">
             <div class="d-flex justify-content-between">
                 <h1><?php echo __('User Profile'); ?></h1>
-                <div class="text-right">
-                    <?php echo $this->Html->link(__('Edit Profile'), ['action' => 'edit', $user['User']['id']], ['class' => 'btn btn-outline-dark']); ?>
-                </div>
+                <?php if (AuthComponent::user() && AuthComponent::user('id') === $user['User']['id']): ?>
+                    <div class="text-right">
+                        <?php echo $this->Html->link(__('Edit Profile'), ['action' => 'edit', $user['User']['id']], ['class' => 'btn btn-outline-dark']); ?>
+                    </div>
+                <?php endif; ?>
             </div>
             <div class="row">
                 <div class="col-3">
