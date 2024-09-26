@@ -7,7 +7,7 @@
 		echo $this->Form->input('conversation_id');
 		echo $this->Form->input('user_id');
 		echo $this->Form->input('content');
-		echo $this->Form->input('sent_date');
+		echo $this->Form->input('created');
 	?>
 	</fieldset>
 <?php echo $this->Form->end(__('Submit')); ?>

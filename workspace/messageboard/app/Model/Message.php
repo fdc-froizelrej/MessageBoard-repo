@@ -61,7 +61,7 @@ class Message extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
-		'sent_date' => array(
+		'created' => array(
 			'datetime' => array(
 				'rule' => array('datetime'),
 				//'message' => 'Your custom message here',
@@ -71,7 +71,41 @@ class Message extends AppModel {
 				//'on' => 'create', // Limit validation to 'create' or 'update' operations
 			),
 		),
+		'modified' => array(
+            'datetime' => array(
+                'rule' => array('datetime'),
+                'allowEmpty' => true,
+            ),
+        ),
+        'created_ip' => array(
+            'ip' => array(
+                'rule' => array('ip'),
+                'allowEmpty' => false,
+            ),
+        ),
+        'modified_ip' => array(
+            'ip' => array(
+                'rule' => array('ip'),
+                'allowEmpty' => true,
+            ),
+        ),
+
 	);
+/**
+ * beforeSave callback
+ *
+ * @param array $options
+ * @return bool
+ */
+	public function beforeSave($options = array()) {
+        if (empty($this->data['Message']['id'])) {
+            $ipAddress = env('HTTP_CLIENT_IP') ? env('HTTP_CLIENT_IP') : env('REMOTE_ADDR');
+            $this->data['Message']['created_ip'] = $ipAddress;
+			unset($this->data['Message']['modified']);
+        }
+
+        return true;
+	}
 
 	// The Associations below have been created with all possible keys, those that are not needed can be removed
 

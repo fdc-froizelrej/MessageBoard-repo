@@ -7,7 +7,7 @@
 			<th><?php echo $this->Paginator->sort('conversation_id'); ?></th>
 			<th><?php echo $this->Paginator->sort('user_id'); ?></th>
 			<th><?php echo $this->Paginator->sort('content'); ?></th>
-			<th><?php echo $this->Paginator->sort('sent_date'); ?></th>
+			<th><?php echo $this->Paginator->sort('created'); ?></th>
 			<th class="actions"><?php echo __('Actions'); ?></th>
 	</tr>
 	</thead>
@@ -22,7 +22,7 @@
 			<?php echo $this->Html->link($message['User']['name'], array('controller' => 'users', 'action' => 'view', $message['User']['id'])); ?>
 		</td>
 		<td><?php echo h($message['Message']['content']); ?>&nbsp;</td>
-		<td><?php echo h($message['Message']['sent_date']); ?>&nbsp;</td>
+		<td><?php echo h($message['Message']['created']); ?>&nbsp;</td>
 		<td class="actions">
 			<?php echo $this->Html->link(__('View'), array('action' => 'view', $message['Message']['id'])); ?>
 			<?php echo $this->Html->link(__('Edit'), array('action' => 'edit', $message['Message']['id'])); ?>

@@ -23,7 +23,7 @@
 		</dd>
 		<dt><?php echo __('Sent Date'); ?></dt>
 		<dd>
-			<?php echo h($message['Message']['sent_date']); ?>
+			<?php echo h($message['Message']['created']); ?>
 			&nbsp;
 		</dd>
 	</dl>

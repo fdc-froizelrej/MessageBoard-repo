@@ -34,8 +34,7 @@ class MessagesController extends AppController {
             $this->request->data['Message']['user_id'] = $this->Auth->user('id'); 
     
             if (!empty($this->request->data['Message']['content'])) {
-                $this->request->data['Message']['sent_date'] = date('Y-m-d H:i:s');
-    
+                $this->request->data['Message']['created'] = date('Y-m-d H:i:s');
                 if ($this->Message->save($this->request->data)) {
                     // $this->Flash->success(__('Message sent.'));
                     return $this->redirect(array('controller' => 'Conversations', 'action' => 'view', $conversationId)); 
@@ -74,7 +73,6 @@ class MessagesController extends AppController {
         }
         $this->request->allowMethod('post', 'delete');
         if ($this->Message->delete($id)) {
-            // $this->Flash->success(__('The message has been deleted.'));
         } else {
             $this->Flash->error(__('The message could not be deleted. Please, try again.'));
         }
