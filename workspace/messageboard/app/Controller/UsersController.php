@@ -154,7 +154,7 @@ class UsersController extends AppController {
 			}
 			
 			if (!empty($this->request->data['User']['new_password'])) {
-				if ($this->request->data['User']['new_password'] === $this->request->data['User']['confirm_password']) {
+				if ($this->request->data['User']['new_password'] === $this->request->data['User']['confirm_new_password']) {
 					$this->request->data['User']['password'] = AuthComponent::password($this->request->data['User']['new_password']);
 					$fieldsToSave[] = 'password';
 				} else {

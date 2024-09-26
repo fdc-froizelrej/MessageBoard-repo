@@ -67,14 +67,23 @@ class User extends AppModel {
                 'rule' => array('notBlank'),
                 'message' => 'Please enter your password.',
             ),
-            // Other password validation rules can be added here if needed.
+            'matchPassword' => array(
+                'rule' => 'matchPassword',
+                'message' => 'Passwords do not match.',
+            ),
+        ),
+        'confirm_password' => array(
+            'notBlank' => array(
+                'rule' => array('notBlank'),
+                'message' => 'Please confirm your password.',
+            ),
         ),
         'old_password' => array(
             'notBlank' => array(
                 'rule' => array('notBlank'),
                 'message' => 'Old password cannot be empty.',
-                'allowEmpty' => false,
-                'required' => true,
+                'allowEmpty' => true,
+                'required' => false,
             ),
             'checkCurrentPassword' => array(
                 'rule' => 'checkCurrentPassword',
@@ -85,22 +94,22 @@ class User extends AppModel {
             'notBlank' => array(
                 'rule' => array('notBlank'),
                 'message' => 'New password cannot be empty.',
-                'allowEmpty' => false,
-                'required' => true,
+                'allowEmpty' => true,
+                'required' => false,
             ),
             'length' => array(
                 'rule' => array('lengthBetween', 6, 20),
                 'message' => 'New password must be between 6 and 20 characters.',
-                'allowEmpty' => false,
-                'required' => true,
+                'allowEmpty' => true,
+                'required' => false,
             ),
         ),
-        'confirm_password' => array(
+        'confirm_new_password' => array(
             'notBlank' => array(
                 'rule' => array('notBlank'),
                 'message' => 'Please confirm your new password.',
-                'allowEmpty' => false,
-                'required' => true,
+                'allowEmpty' => true,
+                'required' => false,
             ),
             'matchNewPassword' => array(
                 'rule' => 'matchNewPassword',
@@ -153,14 +162,40 @@ class User extends AppModel {
         ),
     );
 
+    public function beforeValidate($options = array()) {
+        parent::beforeValidate($options);
+        
+        if (isset($this->data['User']['id'])) {
+            // Editing profile
+            unset($this->validate['password']);
+            unset($this->validate['confirm_password']);
+        } else {
+            // Registering new user
+            unset($this->validate['old_password']);
+            unset($this->validate['new_password']);
+            unset($this->validate['confirm_new_password']);
+        }
+    
+        return true;
+    }
+    
+    
     public function checkCurrentPassword($data) {
         return $this->Auth->identify(['email' => $this->data['User']['email'], 'password' => $data['old_password']]);
     }
-
+    
     public function matchNewPassword($data) {
-        if ($data['confirm_password'] === $this->data['User']['new_password']) {
+        if ($data['confirm_new_password'] === $this->data['User']['new_password']) {
             return true;
         }
+        return false;
+    }
+    
+    public function matchPassword($data) {
+        if ($this->data['User']['password'] === $this->data['User']['confirm_password']) {
+            return true;
+        }
+        $this->invalidate('confirm_password', 'Passwords do not match.');
         return false;
     }
 

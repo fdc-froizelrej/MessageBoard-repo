@@ -26,7 +26,7 @@
                 echo $this->Form->input('email', array('class' => 'form-control', 'label' => 'Email', 'required' => false));
                 echo $this->Form->input('old_password', array('type' => 'password', 'class' => 'form-control', 'label' => 'Old Password', 'value' => '', 'required' => false));
                 echo $this->Form->input('new_password', array('type' => 'password', 'class' => 'form-control', 'label' => 'New Password', 'value' => '', 'required' => false));
-                echo $this->Form->input('confirm_password', array('type' => 'password', 'class' => 'form-control', 'label' => 'Confirm Password', 'value' => '', 'required' => false));
+                echo $this->Form->input('confirm_new_password', array('type' => 'password', 'class' => 'form-control', 'label' => 'Confirm Password', 'value' => '', 'required' => false));
                 ?>
             </fieldset>
             <div class="text-right">
