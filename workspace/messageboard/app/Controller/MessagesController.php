@@ -67,7 +67,7 @@ class MessagesController extends AppController {
         $this->set(compact('conversations', 'users'));
     }
 
-    public function delete($id = null, $conversationId) {
+    public function delete($id = null) {
         if (!$this->Message->exists($id)) {
             throw new NotFoundException(__('Invalid message'));
         }
@@ -76,6 +76,6 @@ class MessagesController extends AppController {
         } else {
             $this->Flash->error(__('The message could not be deleted. Please, try again.'));
         }
-        return $this->redirect(array('controller' => 'Conversations', 'action' => 'view', $conversationId)); 
+        return $this->redirect(['action' => 'index']);
     }
 }

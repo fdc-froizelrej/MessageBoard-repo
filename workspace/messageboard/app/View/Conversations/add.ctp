@@ -17,7 +17,8 @@
             'type' => 'textarea',
             'label' => __('Message'),
             'rows' => '5',
-            'placeholder' => __('Type your message here...')
+            'placeholder' => __('Type your message here...'),
+            'style' => 'resize: none;'
         ]);
     ?>
 </fieldset>

@@ -15,7 +15,7 @@ class ConversationsController extends AppController {
  *
  * @var array
  */
-	public $components = array('Paginator', 'Session', 'Flash');
+	public $components = array('Paginator', 'Session', 'Flash', 'RequestHandler');
 
 /**
  * index method
@@ -45,7 +45,7 @@ class ConversationsController extends AppController {
                 )
             ),
             'order' => array('Message.created' => 'DESC'), 
-            'limit' => 2,
+            'limit' => 10,
 			'page' => $this->request->query('page') ?: 1
         );
         $conversations = $this->Paginator->paginate('Conversation');
@@ -114,9 +114,7 @@ class ConversationsController extends AppController {
 		}
 
 		// GET OTHER USER
-		$otherUserId = ($conversation['Conversation']['sender_id'] == $loggedInUserId) ? 
-			$conversation['Conversation']['receiver_id'] : 
-			$conversation['Conversation']['sender_id'];
+		$otherUserId = ($conversation['Conversation']['sender_id'] == $loggedInUserId) ? $conversation['Conversation']['receiver_id'] : $conversation['Conversation']['sender_id'];
 		$otherUser = $this->Conversation->User->findById($otherUserId);
 
 		// GET USERS
@@ -153,11 +151,11 @@ class ConversationsController extends AppController {
 		$this->Paginator->settings = array(
 			'conditions' => array('Message.conversation_id' => $id),
 			'order' => array('Message.created' => 'DESC'),
-			'limit' => 3,
+			'limit' => 10,
 			'page' => $this->request->query('page') ?: 1 
 		);
 		$messages = $this->Paginator->paginate('Message');
-
+		
 		$this->set(compact('conversation', 'loggedInUserId', 'otherUser', 'users', 'messages', 'otherConversations'));
 	}
 
@@ -199,7 +197,6 @@ class ConversationsController extends AppController {
 				];
 
 				if ($this->Conversation->Message->save($messageData)) {
-					$this->Flash->success(__('The message has been sent.'));
 					return $this->redirect(['action' => 'index']);
 				} else {
 					$this->Flash->error(__('The message could not be saved. Please try again.'));
@@ -266,29 +263,18 @@ class ConversationsController extends AppController {
 		if (!$this->Conversation->exists($id)) {
 			throw new NotFoundException(__('Invalid conversation'));
 		}
-
 		$this->request->allowMethod('post', 'delete');
-		$currentUserId = $this->Auth->user('id');
 
-		$userConversation = $this->Conversation->UserConversation->find('first', [
-			'conditions' => [
-				'UserConversation.conversation_id' => $id, 
-				'UserConversation.user_id' => $currentUserId
-			]
-		]);
-
-		if($userConversation){
-			$userConversation['UserConversation']['is_deleted'] = true;
-
-			if($this->Conversation->UserConversation->save($userConversation)){
-				$this->Flash->success(__('The conversation has been deleted.'));
+		if ($this->Conversation->Message->deleteAll(['Message.conversation_id' => $id], false)) {
+			if ($this->Conversation->delete($id)) {
+				// $this->Flash->success(__('The conversation has been deleted.'));
 			} else {
 				$this->Flash->error(__('The conversation could not be deleted. Please, try again.'));
 			}
 		} else {
-			$this->Flash->error(__('You do not have permission to delete this conversation.'));
+			$this->Flash->error(__('The messages could not be deleted. Please, try again.'));
 		}
-
+		
 		return $this->redirect(array('action' => 'index'));
 	}
 }

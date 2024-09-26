@@ -118,6 +118,7 @@ class Message extends AppModel {
 		'Conversation' => array(
 			'className' => 'Conversation',
 			'foreignKey' => 'conversation_id',
+			'dependent' => true,
 			'conditions' => '',
 			'fields' => '',
 			'order' => ''

@@ -6,11 +6,21 @@
         return $dateB - $dateA;
     });
 ?>
-<div class="container w-100">
-    <div class="row">
+<style>
+    .conversation-list {
+        max-height: calc(100vh - 120px); /* Adjust based on your layout */
+        overflow-y: auto; /* Enable vertical scrolling */
+    }
 
+    .current-conversation {
+        max-height: calc(100vh - 120px); /* Same height for consistency */
+        overflow-y: auto; /* Enable vertical scrolling */
+    }
+</style>
+<div class="container w-100">
+    <div class="row h-100">
         <!-- OTHER CONVERSATIONS -->
-        <div class="col-4">
+        <div class="col-4 conversation list">
             <div class="text-right mr-4">
                 <?php echo $this->Html->link(__('New message'), array('action' => 'add'), array('class' => 'btn btn-outline-dark mb-2')); ?>
             </div>
@@ -51,7 +61,7 @@
         </div>
 
         <!-- CURRENT CONVERSATION -->
-        <div class="col-8">
+        <div class="col-8 h-100">
             <!-- SEARCH MESSAGE -->
             <div class="input-group justify-content-end mb-2">
                 <?php 
@@ -65,18 +75,7 @@
                     <?php 
                         $otherUserId = ($conversation['Conversation']['sender_id'] == $loggedInUserId) ? $conversation['Conversation']['receiver_id'] : $conversation['Conversation']['sender_id'];
                         $otherUser = $users[$otherUserId]; 
-                        echo $this->Form->create('Message', array('url' => array('controller' => 'Messages', 'action' => 'add', $conversation['Conversation']['id']))); 
                     ?>
-                    <div class="row align-items-center">
-                        <div class="col-md-8">
-                            <?php echo $this->Form->input('content', array('type' => 'textarea', 'class' => 'form-control', 'rows' => '1', 'placeholder' => 'Type your message...', 'required' => true, 'label' => false, 'style' => 'resize: none;')); ?>
-                        </div>
-                        <div class="col-md-4 text-right">
-                            <?php echo $this->Form->button('Reply message', array('class' => 'btn btn-outline-dark mb-3 ')); ?>
-                            <?php echo $this->Form->end(); ?>
-                        </div>
-                    </div>
-        
                     <div class="d-flex align-items-center mx-3">
                         <div class="profile-pic">
                             <a href="<?php echo $this->Html->url(array('controller' => 'Users', 'action' => 'view', $otherUserId)); ?>">
@@ -86,7 +85,7 @@
                         <h3 class="text-dark mx-2"><?php echo h($otherUser['name']); ?></h3>
                     </div>
                     <?php if (!empty($messages)): ?>
-                        <div class="container mt-1">
+                        <div class="container current-conversation mt-1">
 
                             <!-- SHOW MORE BUTTON -->
                             <?php if ($this->Paginator->hasNext()): ?>
@@ -95,7 +94,7 @@
                                 </div>
                             <?php endif; ?>
 
-                            <!-- MESSAGES -->
+                            <!-- MESSAGE CONTAINER -->
                             <div id="messages-container">
                                 <?php foreach (array_reverse($messages) as $message): ?>
                                     <div class="row mb-2">
@@ -103,15 +102,19 @@
                                             <div class="alert <?php echo ($message['Message']['user_id'] == $loggedInUserId) ? 'alert-primary' : 'alert-secondary'; ?>">
                                                 <div class="d-flex justify-content-between">
                                                     <strong><?php echo ($message['Message']['user_id'] == $loggedInUserId) ? 'You' : h($otherUser['name']); ?>:</strong>
+                                                    <!-- DELETE BUTTON -->
                                                     <?php if ($message['Message']['user_id'] == $loggedInUserId): ?>
                                                         <div class="text-right">
-                                                            <?php echo $this->Form->postLink('<i class="fas fa-trash"></i>', array('controller' => 'Messages', 'action' => 'delete', $message['Message']['id'], $conversation['Conversation']['id']), array('escape' => false, 'confirm' => __('Are you sure you want to delete this message?'), 'class' => 'btn btn-outline-danger btn-sm')); ?>
+                                                            <button class="btn btn-outline-danger btn-sm delete-message" id="<?php echo $message['Message']['id']; ?>" type="button" onclick="return confirm('<?php echo __('Are you sure you want to delete this message?'); ?>');">
+                                                                <i class="fas fa-trash"></i>
+                                                            </button>
                                                         </div>
                                                     <?php endif; ?>
                                                 </div>
+                                                <!-- MESSAGES -->
                                                 <div class="message-preview">
-                                                    <?php if (strlen($message['Message']['content']) > 50): ?>
-                                                        <?php echo h(substr($message['Message']['content'], 0, 50)) . '... '; ?>
+                                                    <?php if (strlen($message['Message']['content']) > 100): ?>
+                                                        <?php echo h(substr($message['Message']['content'], 0, 100)) . '... '; ?>
                                                         <a href="#" class="toggle-message" data-full-message="<?php echo h($message['Message']['content']); ?>">Show More</a>
                                                     <?php else: ?>
                                                         <?php echo h($message['Message']['content']); ?>
@@ -131,6 +134,22 @@
                             </div>
                         </div>
                     <?php endif; ?>
+
+                    <!-- REPLY MESSAGE -->
+                    <div class="input-group justify-content-end">
+                        <?php
+                            echo $this->Form->create('Message', array('url' => array('controller' => 'Messages', 'action' => 'add', $conversation['Conversation']['id']))); 
+                        ?>
+                        <div class="input-group">
+                            <?php echo $this->Form->input('content', array('type' => 'textarea', 'class' => 'form-control', 'rows' => '1', 'placeholder' => 'Type your message...', 'required' => true, 'label' => false, 'style' => 'resize: none;')); ?>
+                            <div class="input-group-append">
+                                <?php
+                                    echo $this->Form->button('Reply message', array('class' => 'btn btn-outline-dark'));
+                                    echo $this->Form->end(); 
+                                ?>
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </div>
         </div>
@@ -138,70 +157,95 @@
 </div>
 
 <script>
-    $('#show-more').on('click', function(e) {
-        e.preventDefault();
-        const page = $(this).data('page');
-        
-        $.ajax({
-            url: '<?php echo $this->Html->url(array('controller' => 'Conversations', 'action' => 'view', $conversation['Conversation']['id'])); ?>',
-            type: 'GET',
-            data: { page: page},
-            success: function(data) {
-                const newMessages = $(data).find('#messages-container').html();
-                const hasNext = $(data).find('#show-more').length > 0;
-
-                $('#messages-container').prepend(newMessages);
-                if (!hasNext) {
-                    $('#show-more').hide();
-                } else {
-                    $('#show-more').data('page', page + 1);
-                }
-            },
-            error: function() {
-                alert('Error loading messages. Please try again.');
-            }
-        });
-    });
-    
-    $(document).on('click', '.toggle-message', function(e) {
-        e.preventDefault();
-        const $link = $(this);
-        const fullMessage = $link.data('full-message');
-        
-        if ($link.text() === 'Show More') {
-            $link.closest('.message-preview').html(fullMessage + ' <a href="#" class="toggle-message" data-full-message="' + fullMessage + '">Hide</a>');
-        } else {
-            const truncatedMessage = fullMessage.substring(0, 50) + '... ';
-            $link.closest('.message-preview').html(truncatedMessage + ' <a href="#" class="toggle-message" data-full-message="' + fullMessage + '">Show More</a>');
-        }
-    });
-
     $(document).ready(function() {
-        $('#search-button').on('click', function() {
-            const searchQuery = $('#search').val().trim().toLowerCase();
+        $('.current-conversation').scrollTop($('.current-conversation')[0].scrollHeight);
+        // MESSAGES PAGINATION
+        $('#show-more').on('click', function(e) {
+            e.preventDefault();
+            const page = $(this).data('page');
+            const url = '<?php echo $this->Html->url(array('controller' => 'Conversations', 'action' => 'view', $conversation['Conversation']['id'])); ?>';
+            
+            $.ajax({
+                url: url,
+                type: 'GET',
+                data: { page: page },
+                success: function(data) {
+                    const newMessages = $(data).find('#messages-container').html();
+                    const hasNext = $(data).find('#show-more').length > 0;
 
-            $('#messages-container .alert').each(function() {
-                const message = $(this).find('.message-preview').text().toLowerCase();
-                if (message.includes(searchQuery)) {
-                    $(this).show();
-                } else {
-                    $(this).hide();
+                    $('#messages-container').prepend(newMessages);
+                    $('#show-more').toggle(hasNext).data('page', hasNext ? page + 1 : page);
+                },
+                error: function() {
+                    alert('Error loading messages. Please try again.');
                 }
             });
+        });
 
-            if (searchQuery.length > 0) {
-                $('#show-more').hide();
-            } else {
-                if ($('#messages-container .alert:visible').length < 50) { 
-                    $('#show-more').show();
-                }
-            }
+        // TOGGLE MESSAGE (ELLIPSIS)
+        $(document).on('click', '.toggle-message', function(e) {
+            e.preventDefault();
+            const $link = $(this);
+            const fullMessage = $link.data('full-message');
+            const isShowingMore = $link.text() === 'Show Less';
+
+            const newHtml = isShowingMore 
+                ? fullMessage + ' <a href="#" class="toggle-message" data-full-message="' + fullMessage + '">Show Less</a>' 
+                : fullMessage.substring(0, 100) + '... <a href="#" class="toggle-message" data-full-message="' + fullMessage + '">Show More</a>';
+
+            $link.closest('.message-preview').zhtml(newHtml);
+        });
+
+        // Search functionality
+        $('#search-button').on('click', function() {
+            const searchQuery = $('#search').val().trim().toLowerCase();
+            $('#messages-container .alert').each(function() {
+                const message = $(this).find('.message-preview').text().toLowerCase();
+                $(this).toggle(message.includes(searchQuery));
+            });
+
+            $('#show-more').toggle(searchQuery.length === 0 && $('#messages-container .alert:visible').length < 50);
         });
 
         $('#search').on('keypress', function(e) {
-            if (e.which === 13) { 
-                $('#search-button').click();
-            }
+            if (e.which === 13) $('#search-button').click();
+        });
+
+        // FADE IN ADD
+        $('form').on('submit', function(e) {
+            e.preventDefault();
+            const form = $(this);
+            $.ajax({
+                url: form.attr('action'),
+                type: 'POST',
+                data: form.serialize(),
+                success: function(data) {
+                    const newMessage = $(data).find('#messages-container .alert.alert-primary').last();
+                    newMessage.addClass('col-md-8 offset-md-4 fade-in').hide().appendTo('#messages-container').fadeIn();
+                },
+                error: function() {
+                    alert('Error sending message. Please try again.');
+                }
+            });
+        });
+
+        // FADE OUT DELETE
+        $('.delete-message').on('click', function() {
+            const $messageElement = $(this).closest('.alert');
+            const messageId = $(this).attr('id');
+
+            $.ajax({
+                url: '<?php echo $this->Html->url(array('controller' => 'Messages', 'action' => 'delete')); ?>' + '/' + messageId,
+                type: 'POST',
+                success: function() {
+                    $messageElement.fadeOut(300, function() {
+                        $(this).remove();
+                    });
+                },
+                error: function(xhr, status, error) {
+                    console.error(error);
+                }
+            });
         });
     });
 </script>
