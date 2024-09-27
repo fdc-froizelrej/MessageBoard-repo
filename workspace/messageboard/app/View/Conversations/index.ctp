@@ -99,6 +99,11 @@ usort($conversations, function ($a, $b) {
             const conversationCard = $(this).closest('.conversation-card');
             const conversationId = $(this).attr('id');
 
+            let confirmed = confirm('Are you sure you want to delete this message?');
+			if (!confirmed) {
+				return;
+			}
+
             $.ajax({
                 url: '<?php echo $this->Html->url(array('controller' => 'Conversations', 'action' => 'delete')); ?>' + '/' + conversationId,
                 type: 'POST',

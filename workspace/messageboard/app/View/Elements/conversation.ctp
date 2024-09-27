@@ -27,7 +27,7 @@
                     </div>
                 </div>
                 <div>
-                    <button class="btn btn-danger btn-sm delete-conversation" id="<?php echo $conversation['Conversation']['id']; ?>" type="button" onclick="return confirm('<?php echo __('Are you sure you want to delete this conversation?'); ?>');">
+                    <button class="btn btn-danger btn-sm delete-conversation" id="<?php echo $conversation['Conversation']['id']; ?>" type="button">
                         <i class="fas fa-trash"></i>
                     </button>
                 </div>

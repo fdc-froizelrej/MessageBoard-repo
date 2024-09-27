@@ -277,4 +277,24 @@ class ConversationsController extends AppController {
 		
 		return $this->redirect(array('action' => 'index'));
 	}
+
+	public function search($conversationId = null) {
+		if (!$this->Conversation->exists($conversationId)) {
+			throw new NotFoundException(__('Invalid conversation'));
+		}
+	
+		$this->Paginator->settings = array(
+			'conditions' => array(
+				'Message.conversation_id' => $conversationId,
+				'Message.content LIKE' => '%' . $this->request->query('query') . '%'
+			),
+			'order' => array('Message.created' => 'DESC'),
+			'limit' => 10,
+		);
+	
+		$messages = $this->Paginator->paginate('Message');
+	
+		$this->set(compact('messages'));
+		$this->render('/Elements/messages', 'ajax'); 
+	}	
 }
