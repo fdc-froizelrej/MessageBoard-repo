@@ -42,7 +42,7 @@
             </div>
 
             <!-- SHOW IF NO RESULTS IN SEARCH -->
-            <div id="no-messages" style="display: none; text-align: center; color: gray;">
+            <div id="no-messages" class="text-muted text-center "style="display: none;">
                 No messages found.
             </div>
 
