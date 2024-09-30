@@ -69,6 +69,7 @@
             $('.current-conversation').scrollTop(0);
         }
 
+        // LOAD MESSAGES
         function loadMessages(page, shouldScroll = false) {
             $.ajax({
                 url: '<?php echo $this->Html->url(array('action' => 'view', $conversation['Conversation']['id'])); ?>',
@@ -118,15 +119,16 @@
                 }
             });
         }
-
         loadMessages(currentPage);
 
+        // SHOW MORE MESSAGES
         $('.show-more').on('click', function(e) {
             e.preventDefault();
             currentPage++;
             loadMessages(currentPage, true);
         });
 
+        // REPLY MESSAGE
         $('.reply-message').on('click', function() {
             const message = $('.content').val().trim();
 
@@ -179,7 +181,7 @@
             });
         });
 
-
+        // DELETE MESSAGE
         $(document).on('click', '.delete-message', function() {
             const messageId = $(this).attr('id'); 
             const button = $(this);
@@ -265,6 +267,7 @@
             });
         });
 
+        // CLEAR SEARCH
         $('#clear-button').on('click', function(e) {
             $('#search').val('');
             $('.messages').empty();
