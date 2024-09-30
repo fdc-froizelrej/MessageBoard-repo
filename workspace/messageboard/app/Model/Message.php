@@ -101,7 +101,7 @@ class Message extends AppModel {
         if (empty($this->data['Message']['id'])) {
             $ipAddress = env('HTTP_CLIENT_IP') ? env('HTTP_CLIENT_IP') : env('REMOTE_ADDR');
             $this->data['Message']['created_ip'] = $ipAddress;
-			unset($this->data['Message']['modified']);
+            $this->data['Message']['modified_ip'] = $ipAddress;
         }
 
         return true;

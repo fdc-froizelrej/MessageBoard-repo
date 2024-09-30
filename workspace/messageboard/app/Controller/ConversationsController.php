@@ -27,28 +27,28 @@ class ConversationsController extends AppController {
 
 		// GET AND PAGINATE CONVERSATIONS
 		$this->Paginator->settings = array(
-            'joins' => array(
-                array(
-                    'table' => 'message',
-                    'alias' => 'Message',
-                    'type' => 'LEFT',
-                    'conditions' => array(
-                        'Message.conversation_id = Conversation.id',
-                        'Message.created = (SELECT MAX(created) FROM message WHERE conversation_id = Conversation.id)' 
-                    )
-                )
-            ),
-            'conditions' => array(
-                'OR' => array(
-                    'Conversation.sender_id' => $currentUserId,
-                    'Conversation.receiver_id' => $currentUserId
-                )
-            ),
-            'order' => array('Message.created' => 'DESC'), 
-            'limit' => 10,
+			'joins' => array(
+				array(
+					'table' => 'message',
+					'alias' => 'Message',
+					'type' => 'LEFT',
+					'conditions' => array(
+						'Message.conversation_id = Conversation.id',
+						'Message.created = (SELECT MAX(created) FROM message WHERE conversation_id = Conversation.id)' 
+					)
+				)
+			),
+			'conditions' => array(
+				'OR' => array(
+					'Conversation.sender_id' => $currentUserId,
+					'Conversation.receiver_id' => $currentUserId
+				)
+			),
+			'order' => array('Message.created' => 'DESC'), 
+			'limit' => 5,
 			'page' => $this->request->query('page') ?: 1
-        );
-        $conversations = $this->Paginator->paginate('Conversation');
+		);
+		$conversations = $this->Paginator->paginate('Conversation');
 
 		$userConversations = $this->Conversation->UserConversation->find('list', array(
 			'conditions' => array(
@@ -105,58 +105,59 @@ class ConversationsController extends AppController {
 
 		$options = array('conditions' => array('Conversation.' . $this->Conversation->primaryKey => $id));
 		$conversation = $this->Conversation->find('first', $options);
-		
+
 		// GET LOGGED IN USER
 		$loggedInUserId = $this->Auth->user('id');
-		if (!in_array($loggedInUserId, [$conversation['Conversation']['sender_id'], $conversation['Conversation']['receiver_id']])) {
+		if (!in_array($loggedInUserId, array($conversation['Conversation']['sender_id'], $conversation['Conversation']['receiver_id']))) {
 			$this->Flash->error(__('You do not have permission to view this conversation.'));
-			return $this->redirect(['action' => 'index']);
+			return $this->redirect(array('action' => 'index'));
 		}
 
 		// GET OTHER USER
 		$otherUserId = ($conversation['Conversation']['sender_id'] == $loggedInUserId) ? $conversation['Conversation']['receiver_id'] : $conversation['Conversation']['sender_id'];
 		$otherUser = $this->Conversation->User->findById($otherUserId);
 
-		// GET USERS
-		$usersData = $this->Conversation->User->find('all', array(
-			'fields' => array('User.id', 'User.name', 'User.profile_picture')
-		));
-		$users = array();
-		foreach ($usersData as $user) {
-			$users[$user['User']['id']] = array(
-				'name' => $user['User']['name'],
-				'profile_picture' => $user['User']['profile_picture']
-			);
-		}
-
-		// GET OTHER CONVERSATIONS
-		$otherConversations = $this->Conversation->find('all', array(
-			'conditions' => array(
-				'OR' => array(
-					'Conversation.sender_id' => $loggedInUserId,
-					'Conversation.receiver_id' => $loggedInUserId
-				),
-			),
-			'order' => array('Conversation.id' => 'DESC')
-		));
-		foreach ($otherConversations as &$conv) {
-			$latestMessage = $this->Conversation->Message->find('first', [
-				'conditions' => ['Message.conversation_id' => $conv['Conversation']['id']],
-				'order' => ['Message.created' => 'DESC']
-			]);
-			$conv['latestMessage'] = $latestMessage;
-		}
-
-		// GET AND PAGINATE MESSAGES
+		// GET MESSAGES
+		$page = $this->request->query('page') ?: 1;
 		$this->Paginator->settings = array(
 			'conditions' => array('Message.conversation_id' => $id),
 			'order' => array('Message.created' => 'DESC'),
-			'limit' => 10,
-			'page' => $this->request->query('page') ?: 1 
+			'limit' => 5, 
+			'page' => $page
 		);
 		$messages = $this->Paginator->paginate('Message');
-		
-		$this->set(compact('conversation', 'loggedInUserId', 'otherUser', 'users', 'messages', 'otherConversations'));
+
+		$data = array(
+			'conversation' => array(
+				'id' => $conversation['Conversation']['id'],
+				'sender_id' => $conversation['Conversation']['sender_id'],
+				'receiver_id' => $conversation['Conversation']['receiver_id'],
+			),
+			'messages' => array_map(function($message) {
+				return array(
+					'id' => $message['Message']['id'],
+					'content' => $message['Message']['content'],
+					'created' => date('H:i A - F d, Y', strtotime($message['Message']['created'])),
+					'user_id' => $message['Message']['user_id'],
+				);
+			}, $messages),
+			'loggedInUserId' => $loggedInUserId,
+			'otherUser' => array(
+				'id' => $otherUser['User']['id'],
+				'name' => $otherUser['User']['name'],
+				'profile_picture' => $otherUser['User']['profile_picture'],
+			),
+		);
+
+		if ($this->request->is('ajax')) {
+			$this->autoRender = false; 
+			$this->response->type('json'); 
+
+			echo json_encode($data); 
+			return; 
+		}
+
+		$this->set(compact('conversation', 'messages', 'loggedInUserId', 'otherUser'));
 	}
 
 /**
@@ -166,38 +167,38 @@ class ConversationsController extends AppController {
  */
 	public function add() {
 		$loggedInUserId = $this->Auth->user('id');
-		$users = $this->Conversation->User->find('list', [
-			'conditions' => ['User.id !=' => $loggedInUserId],
-			'fields' => ['User.id', 'User.name'], 
-			'order' => ['User.name' => 'ASC']
-		]);
+		$users = $this->Conversation->User->find('list', array(
+			'conditions' => array('User.id !=' => $loggedInUserId),
+			'fields' => array('User.id', 'User.name'), 
+			'order' => array('User.name' => 'ASC')
+		));
 		
 		$this->set(compact('users'));
 
 		if ($this->request->is('post')) {
 			$data = $this->request->data['Conversation'];
 			
-			$existingConversation = $this->Conversation->find('first', [
-				'conditions' => [
-					'OR' => [
-						['Conversation.sender_id' => $loggedInUserId, 'Conversation.receiver_id' => $data['receiver_id']],
-						['Conversation.sender_id' => $data['receiver_id'], 'Conversation.receiver_id' => $loggedInUserId]
-					]
-				]
-			]);
+			$existingConversation = $this->Conversation->find('first', array(
+				'conditions' => array(
+					'OR' => array(
+						array('Conversation.sender_id' => $loggedInUserId, 'Conversation.receiver_id' => $data['receiver_id']),
+						array('Conversation.sender_id' => $data['receiver_id'], 'Conversation.receiver_id' => $loggedInUserId)
+					)
+				)
+			));
 
 			$conversationId = $existingConversation ? $existingConversation['Conversation']['id'] : $this->createConversation($loggedInUserId, $data['receiver_id']);
 			
 			if ($conversationId) {
-				$messageData = [
+				$messageData = array(
 					'conversation_id' => $conversationId,
 					'user_id' => $loggedInUserId,
 					'content' => $data['message'],
 					'created' => date('Y-m-d H:i:s'),
-				];
+				);
 
 				if ($this->Conversation->Message->save($messageData)) {
-					return $this->redirect(['action' => 'index']);
+					return $this->redirect(array('action' => 'index'));
 				} else {
 					$this->Flash->error(__('The message could not be saved. Please try again.'));
 				}
@@ -207,9 +208,9 @@ class ConversationsController extends AppController {
 
 	private function createConversation($loggedInUserId, $receiverId) {
 		$this->Conversation->create();
-		if ($this->Conversation->save(['sender_id' => $loggedInUserId, 'receiver_id' => $receiverId])) {
+		if ($this->Conversation->save(array('sender_id' => $loggedInUserId, 'receiver_id' => $receiverId))) {
 			$conversationId = $this->Conversation->id;
-			$this->saveUserConversations($conversationId, [$loggedInUserId, $receiverId]);
+			$this->saveUserConversations($conversationId, array($loggedInUserId, $receiverId));
 			return $conversationId;
 		}
 		$this->Flash->error(__('The conversation could not be saved. Please try again.'));
@@ -219,7 +220,7 @@ class ConversationsController extends AppController {
 	private function saveUserConversations($conversationId, $userIds) {
 		foreach ($userIds as $userId) {
 			$this->Conversation->UserConversation->create();
-			if (!$this->Conversation->UserConversation->save(['user_id' => $userId, 'conversation_id' => $conversationId])) {
+			if (!$this->Conversation->UserConversation->save(array('user_id' => $userId, 'conversation_id' => $conversationId))) {
 				$this->Flash->error(__('The UserConversation entry could not be saved. Please try again.'));
 			}
 		}
@@ -265,7 +266,7 @@ class ConversationsController extends AppController {
 		}
 		$this->request->allowMethod('post', 'delete');
 
-		if ($this->Conversation->Message->deleteAll(['Message.conversation_id' => $id], false)) {
+		if ($this->Conversation->Message->deleteAll(array('Message.conversation_id' => $id), false)) {
 			if ($this->Conversation->delete($id)) {
 				// $this->Flash->success(__('The conversation has been deleted.'));
 			} else {
@@ -277,24 +278,4 @@ class ConversationsController extends AppController {
 		
 		return $this->redirect(array('action' => 'index'));
 	}
-
-	public function search($conversationId = null) {
-		if (!$this->Conversation->exists($conversationId)) {
-			throw new NotFoundException(__('Invalid conversation'));
-		}
-	
-		$this->Paginator->settings = array(
-			'conditions' => array(
-				'Message.conversation_id' => $conversationId,
-				'Message.content LIKE' => '%' . $this->request->query('query') . '%'
-			),
-			'order' => array('Message.created' => 'DESC'),
-			'limit' => 10,
-		);
-	
-		$messages = $this->Paginator->paginate('Message');
-	
-		$this->set(compact('messages'));
-		$this->render('/Elements/messages', 'ajax'); 
-	}	
 }

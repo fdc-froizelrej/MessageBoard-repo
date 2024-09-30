@@ -42,23 +42,25 @@ $cakeVersion = __d('cake_dev', 'CakePHP %s', Configure::version());
 <body>
     <nav class="navbar navbar-light bg-light mb-4">
         <div class="container">
-            <a class="navbar-brand" href="<?php echo $this->Html->url(['controller' => 'Conversations', 'action' => 'index']); ?>">Messageboard</a>
+            <a class="navbar-brand" href="<?php echo $this->Html->url(array('controller' => 'Conversations', 'action' => 'index')); ?>">Messageboard</a>
             <div class="ml-auto d-flex">
                 <?php if (AuthComponent::user()): ?>
                     <p class="mx-2 my-2">Welcome, <?php echo h(AuthComponent::user('name'));?>!</p>
                     <div class="dropdown">
                         <button class="btn btn-link p-0" type="button" id="dropdownMenuButton" data-toggle="dropdown" aria-haspopup="true" aria-expanded="false">
                             <?php 
-                            $userProfilePicture = AuthComponent::user('profile_picture');
-                            if (!empty($userProfilePicture)): ?>
-                                <img src="<?php echo h($this->Html->url('/uploads/profile_pictures/' . basename($userProfilePicture))); ?>" alt="Profile" class="rounded-circle" style="width: 40px; height: 40px;">
+                                $userProfilePicture = AuthComponent::user('profile_picture');
+                                if (!empty($userProfilePicture)): 
+                                    $imageSource = h($this->Html->url('/uploads/profile_pictures/' . basename($userProfilePicture) . '?' . time()));
+                            ?>
+                                <img src="<?php echo $imageSource; ?>" alt="Profile" class="rounded-circle" style="width: 40px; height: 40px;">
                             <?php else: ?>
                                 <img src="https://static-00.iconduck.com/assets.00/profile-circle-icon-2048x2048-cqe5466q.png" alt="Default Profile" class="rounded-circle" style="width: 40px; height: 40px;">
                             <?php endif; ?>
                         </button>
                         <div class="dropdown-menu dropdown-menu-right" aria-labelledby="dropdownMenuButton">
-                            <a class="dropdown-item" href="<?php echo $this->Html->url(['controller' => 'Users', 'action' => 'view', AuthComponent::user('id')]); ?>">Profile</a>
-                            <a class="dropdown-item" href="<?php echo $this->Html->url(['controller' => 'Users', 'action' => 'logout']); ?>">Logout</a>
+                            <a class="dropdown-item" href="<?php echo $this->Html->url(array('controller' => 'Users', 'action' => 'view', AuthComponent::user('id'))); ?>">Profile</a>
+                            <a class="dropdown-item" href="<?php echo $this->Html->url(array('controller' => 'Users', 'action' => 'logout')); ?>">Logout</a>
                         </div>
                     </div>
                 <?php endif; ?>

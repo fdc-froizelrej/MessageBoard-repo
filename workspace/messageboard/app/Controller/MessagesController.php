@@ -28,22 +28,34 @@ class MessagesController extends AppController {
 
     public function add($conversationId) {
         if ($this->request->is('post')) {
-            $this->Message->create();
-            
-            $this->request->data['Message']['conversation_id'] = $conversationId;
-            $this->request->data['Message']['user_id'] = $this->Auth->user('id'); 
+            $messageData = array(
+                'Message' => array(
+                    'content' => $this->request->data['Message']['content'],
+                    'conversation_id' => $conversationId,
+                    'user_id' => $this->Auth->user('id')
+                )
+            );
     
-            if (!empty($this->request->data['Message']['content'])) {
-                $this->request->data['Message']['created'] = date('Y-m-d H:i:s');
-                if ($this->Message->save($this->request->data)) {
-                    // $this->Flash->success(__('Message sent.'));
-                    return $this->redirect(array('controller' => 'Conversations', 'action' => 'view', $conversationId)); 
-                } else {
-                    $this->Flash->error(__('The message could not be saved. Please, try again.'));
-                }
+            if ($this->Message->save($messageData)) {
+                $savedMessage = $this->Message->findById($this->Message->id);
+                $formattedDate = date('H:i A - F d, Y', strtotime($savedMessage['Message']['created']));
+
+                $response = array(
+                    'success' => true,
+                    'message' => array(
+                        'id' => $savedMessage['Message']['id'],
+                        'created' => $formattedDate,
+                        'content' => $savedMessage['Message']['content'],
+                    )
+                );
             } else {
-                $this->Flash->error(__('Content cannot be empty.'));
+                $response = array('success' => false, 'errors' => $this->Message->validationErrors);
             }
+    
+            $this->autoRender = false;
+            $this->response->type('json');
+            echo json_encode($response);
+            exit;
         }
     }
 
@@ -76,6 +88,22 @@ class MessagesController extends AppController {
         } else {
             $this->Flash->error(__('The message could not be deleted. Please, try again.'));
         }
-        return $this->redirect(['action' => 'index']);
+        return $this->redirect(array('action' => 'index'));
+    }
+
+    public function search($conversationId = null) {
+        $this->autoRender = false; 
+        $query = $this->request->query('query');
+    
+        $this->loadModel('Message');
+        $messages = $this->Message->find('all', array(
+            'conditions' => array(
+                'Message.conversation_id' => $conversationId,
+                'Message.content LIKE' => '%' . $query . '%'
+            ),
+            'fields' => ['id', 'content', 'created', 'user_id'],
+            'recursive' => -1
+        ));
+        echo json_encode(array('messages' => $messages));
     }
 }

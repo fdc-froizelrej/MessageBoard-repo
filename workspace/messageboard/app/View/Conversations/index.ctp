@@ -1,16 +1,16 @@
 <?php
 // SORT CONVERSATIONS BY LATEST MESSAGE
-usort($conversations, function ($a, $b) {
-    $dateA = isset($a['last_created']) ? strtotime($a['last_created']) : 0;
-    $dateB = isset($b['last_created']) ? strtotime($b['last_created']) : 0;
-    return $dateB - $dateA;
-});
+    usort($conversations, function ($a, $b) {
+        $dateA = isset($a['last_created']) ? strtotime($a['last_created']) : 0;
+        $dateB = isset($b['last_created']) ? strtotime($b['last_created']) : 0;
+        return $dateB - $dateA;
+    });
 ?>
-<div class="container w-75">
+<div class="container w-100">
     <div class="d-flex justify-content-between">
         <h1><?php echo __('Message List'); ?></h1>
         <div>
-            <?php echo $this->Html->link(__('New message'), ['action' => 'add'], ['class' => 'btn btn-outline-dark']); ?>
+            <?php echo $this->Html->link(__('New message'), array('action' => 'add'), array('class' => 'btn btn-outline-dark')); ?>
         </div>
     </div>
     <div class="input-group justify-content-start mb-2">
@@ -20,7 +20,7 @@ usort($conversations, function ($a, $b) {
         ?>             
     </div>
 
-    <div class="conversations-container row">
+    <div class="conversations-container">
         <?php if (empty($conversations)): ?>
             <div class="col-12">
                 <div class="alert alert-info">
@@ -30,7 +30,7 @@ usort($conversations, function ($a, $b) {
         <?php else: ?>
             <div class="row">
                 <?php foreach ($conversations as $conversation): ?>
-                    <?= $this->element('conversation', ['conversation' => $conversation, 'currentUserId' => $currentUserId, 'users' => $users]); ?>
+                    <?= $this->element('conversation', array('conversation' => $conversation, 'currentUserId' => $currentUserId, 'users' => $users)); ?>
                 <?php endforeach; ?>
             </div>
         <?php endif; ?>
@@ -108,7 +108,7 @@ usort($conversations, function ($a, $b) {
                 url: '<?php echo $this->Html->url(array('controller' => 'Conversations', 'action' => 'delete')); ?>' + '/' + conversationId,
                 type: 'POST',
                 success: function(response) {
-                    conversationCard.fadeOut(300, function() {
+                    conversationCard.fadeOut(700, function() {
                         $(this).remove();
                     });
 

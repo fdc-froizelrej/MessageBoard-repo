@@ -12,7 +12,7 @@
             $lastMessageContent = __('You: ') . ($lastMessageContent);
         }
         ?>
-        <a href="<?php echo $this->Html->url(['action' => 'view', $conversation['Conversation']['id']]); ?>" style="text-decoration: none; color: inherit;">
+        <a href="<?php echo $this->Html->url(array('action' => 'view', $conversation['Conversation']['id'])); ?>" style="text-decoration: none; color: inherit;">
             <div class="card-header d-flex justify-content-between">
                 <div class="d-flex align-items-center">
                     <div class="profile-pic me-3">

@@ -1,14 +1,14 @@
 <?php
 // SORT OTHER CONVERSATIONS BY LATEST MESSAGE
-usort($otherConversations, function ($a, $b) {
-    $dateA = isset($a['latestMessage']['Message']['created']) ? strtotime($a['latestMessage']['Message']['created']) : 0;
-    $dateB = isset($b['latestMessage']['Message']['created']) ? strtotime($b['latestMessage']['Message']['created']) : 0;
-    return $dateB - $dateA;
-});
+    usort($otherConversations, function ($a, $b) {
+        $dateA = isset($a['latestMessage']['Message']['created']) ? strtotime($a['latestMessage']['Message']['created']) : 0;
+        $dateB = isset($b['latestMessage']['Message']['created']) ? strtotime($b['latestMessage']['Message']['created']) : 0;
+        return $dateB - $dateA;
+    });
 ?>
 
 <div class="text-right mr-4">
-    <?php echo $this->Html->link(__('New message'), ['action' => 'add'], ['class' => 'btn btn-outline-dark mb-2']); ?>
+    <?php echo $this->Html->link(__('New message'), array('action' => 'add'), array('class' => 'btn btn-outline-dark mb-2')); ?>
 </div>
 <ul class="list-group conversation-list">
     <?php foreach ($otherConversations as $conv): ?>
@@ -27,7 +27,7 @@ usort($otherConversations, function ($a, $b) {
             }
         ?>
         <li class="list-group-item <?php echo $isActive ? 'bg-secondary text-light' : 'bg-light text-dark'; ?>">
-            <a href="<?php echo $this->Html->url(['controller' => 'Conversations', 'action' => 'view', $conv['Conversation']['id']]); ?>" class="<?php echo $isActive ? 'text-light text-decoration-none' : 'text-dark text-decoration-none'; ?>">
+            <a href="<?php echo $this->Html->url(array('controller' => 'Conversations', 'action' => 'view', $conv['Conversation']['id'])); ?>" class="<?php echo $isActive ? 'text-light text-decoration-none' : 'text-dark text-decoration-none'; ?>">
                 <img src="<?php echo h(!empty($otherConvUser['profile_picture']) ? $this->Html->url('/uploads/profile_pictures/' . basename($otherConvUser['profile_picture'])) : 'https://static-00.iconduck.com/assets.00/profile-circle-icon-2048x2048-cqe5466q.png'); ?>" alt="User's Profile Picture" class="img-fluid rounded-circle" style="width: 50px; height: 50px;"/> 
                 <?php echo h($otherConvUser['name']); ?>
             </a>

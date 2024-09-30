@@ -60,9 +60,11 @@
                 </div>
             </div>
         <?php endif; ?>
+        <!-- SHOW IF NO RESULTS IN SEARCH -->
         <div id="no-messages" style="display: none; text-align: center; color: gray;">
             No messages found.
         </div>
+
         <!-- REPLY MESSAGE -->
         <div class="input-group justify-content-end">
             <?php
