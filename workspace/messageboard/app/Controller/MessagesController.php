@@ -84,12 +84,19 @@ class MessagesController extends AppController {
             throw new NotFoundException(__('Invalid message'));
         }
         $this->request->allowMethod('post', 'delete');
+    
         if ($this->Message->delete($id)) {
+            $response = array('success' => true, 'message' => __('Message deleted successfully.'));
         } else {
-            $this->Flash->error(__('The message could not be deleted. Please, try again.'));
+            $response = array('success' => false, 'message' => __('The message could not be deleted. Please, try again.'));
         }
-        return $this->redirect(array('action' => 'index'));
+    
+        $this->autoRender = false; 
+        $this->response->type('json');
+        echo json_encode($response);
+        exit();
     }
+    
 
     public function search($conversationId = null) {
         $this->autoRender = false; 

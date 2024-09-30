@@ -118,14 +118,17 @@ class ConversationsController extends AppController {
 		$otherUser = $this->Conversation->User->findById($otherUserId);
 
 		// GET MESSAGES
+		$limit = 5;
 		$page = $this->request->query('page') ?: 1;
 		$this->Paginator->settings = array(
 			'conditions' => array('Message.conversation_id' => $id),
 			'order' => array('Message.created' => 'DESC'),
-			'limit' => 5, 
-			'page' => $page
+			'limit' => $limit,
+        	'offset' => ($page - 1) * $limit
 		);
+		
 		$messages = $this->Paginator->paginate('Message');
+		$hasMore = count($messages) === $limit && $this->Conversation->Message->find('count', array('conditions' => array('Message.conversation_id' => $id))) > $limit;
 
 		$data = array(
 			'conversation' => array(
@@ -147,6 +150,7 @@ class ConversationsController extends AppController {
 				'name' => $otherUser['User']['name'],
 				'profile_picture' => $otherUser['User']['profile_picture'],
 			),
+			'hasMore' => $hasMore,
 		);
 
 		if ($this->request->is('ajax')) {

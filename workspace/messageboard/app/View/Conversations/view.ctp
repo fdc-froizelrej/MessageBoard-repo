@@ -1,15 +1,17 @@
 <style>
     .current-conversation {
-        max-height: calc(100vh - 120px);
+        max-height: calc(62vh - 120px);
         overflow-y: auto; 
     }
 </style>
 <div class="container w-100">
-    <button class="btn btn-outline-dark mb-3" onclick="window.location.href='<?php echo $this->Html->url(array('action' => 'index')); ?>'">Back</button>
-    <div class="input-group mb-3">
-        <input type="text" id="search" class="form-control" placeholder="Search messages...">
-        <div class="input-group-append">
-            <button id="clear-button" class="btn btn-outline-dark" type="button">Clear</button>
+    <div class="d-flex">
+        <button class="btn btn-outline-dark mb-3 mr-3" onclick="window.location.href='<?php echo $this->Html->url(array('action' => 'index')); ?>'">Back</button>
+        <div class="input-group mb-3">
+            <input type="text" id="search" class="form-control" placeholder="Search messages...">
+            <div class="input-group-append">
+                <button id="clear-button" class="btn btn-outline-dark" type="button">Clear</button>
+            </div>
         </div>
     </div>
     <div class="card">
@@ -30,11 +32,9 @@
             </div>
 
             <div class="container current-conversation mt-1 h-100">
-                
                 <!-- MESSAGE CONTAINER -->
                 <div class="messages">
                 </div>
-
                 <!-- SHOW MORE BUTTON -->
                 <div class="show-more-container text-center" style="display:none">
                     <a href="#" class="show-more">Show more</a>
@@ -42,13 +42,11 @@
             </div>
 
             <!-- SHOW IF NO RESULTS IN SEARCH -->
-            <div id="no-messages" class="text-muted text-center "style="display: none;">
+            <div id="no-messages" style="display: none; text-align: center; color: gray;">
                 No messages found.
             </div>
-
         </div>
     </div>
-
 </div>
 
 <script>
@@ -64,12 +62,18 @@
                 profile_picture: <?php echo json_encode($otherUser['User']['profile_picture']); ?>
             };
 
-        function loadMessages(page) {
-            const offset = (page - 1) * limit;
+        function scrollToBottom() {
+            $('.current-conversation').scrollTop($('.current-conversation')[0].scrollHeight);
+        }
+        function scrollToTop() {
+            $('.current-conversation').scrollTop(0);
+        }
+
+        function loadMessages(page, shouldScroll = false) {
             $.ajax({
                 url: '<?php echo $this->Html->url(array('action' => 'view', $conversation['Conversation']['id'])); ?>',
                 method: 'GET',
-                data: { page: page, offset: offset }, 
+                data: { page: page },
                 dataType: 'json',
                 success: function(data) {
                     console.log(data);
@@ -101,7 +105,10 @@
 
                             $('.messages').append(messageHtml);
                         });
-                        $('.show-more-container').toggle(data.messages.length === limit); 
+                        $('.show-more-container').toggle(data.hasMore); 
+                            if (shouldScroll) {
+                            scrollToBottom();
+                        }
                     } else {
                         $('.show-more-container').hide(); 
                     }
@@ -111,13 +118,13 @@
                 }
             });
         }
+
         loadMessages(currentPage);
 
         $('.show-more').on('click', function(e) {
             e.preventDefault();
             currentPage++;
-            loadMessages(currentPage);
-            scrollToBottom();
+            loadMessages(currentPage, true);
         });
 
         $('.reply-message').on('click', function() {
@@ -138,21 +145,21 @@
                         conversation_id: conversationId
                     }
                 },
-                success: function(response) {
-                    console.log('Server response:', response);
-                    if (response && response.success) {
+                success: function(data) {
+                    console.log(data);
+                    if (data && data.success) {
                         const newMessageHtml = $(`
                             <div class="message-preview">
                                 <div class="d-flex justify-content-end mb-2">
                                     <div class="alert alert-primary col-8">
                                         <div class="d-flex justify-content-between">
                                             <strong>You:</strong>
-                                            <button class="btn btn-danger btn-sm delete-message" id="${response.message.id}">
+                                            <button class="btn btn-danger btn-sm delete-message" id="${data.message.id}">
                                                 <i class="fas fa-trash"></i>
                                             </button>
                                         </div>
                                         <p>${message}</p>
-                                        <small class="text-muted">${response.message.created}</small>
+                                        <small class="text-muted">${data.message.created}</small>
                                     </div>
                                 </div>
                             </div>
@@ -161,8 +168,9 @@
                         $('.messages').prepend(newMessageHtml);
                         newMessageHtml.fadeIn();
                         $('.content').val('');
+                        scrollToTop();
                     } else {
-                        console.error('Error:', response.errors || 'Unknown error');
+                        console.error('Error:', data.errors || 'Unknown error');
                     }
                 },
                 error: function(jqXHR, textStatus, errorThrown) {
@@ -184,7 +192,9 @@
             $.ajax({
                 url: '<?php echo $this->Html->url(array('controller' => 'Messages', 'action' => 'delete')); ?>/' + messageId,
                 method: 'POST',
-                success: function(response) {
+                dataType: 'json',
+                success: function(data) {
+                    console.log(data);
                     button.closest('.message-preview').fadeOut(700, function() {
                         $(this).remove();
                     });
@@ -257,6 +267,10 @@
 
         $('#clear-button').on('click', function(e) {
             $('#search').val('');
+            $('.messages').empty();
+            currentPage = 1;
+            loadMessages(currentPage);
+            $('#no-messages').hide();   
         });
     });
 </script>
