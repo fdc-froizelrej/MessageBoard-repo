@@ -95,15 +95,18 @@ class MessagesController extends AppController {
         $this->autoRender = false; 
         $query = $this->request->query('query');
     
-        $this->loadModel('Message');
         $messages = $this->Message->find('all', array(
             'conditions' => array(
                 'Message.conversation_id' => $conversationId,
                 'Message.content LIKE' => '%' . $query . '%'
             ),
-            'fields' => ['id', 'content', 'created', 'user_id'],
+            'order' => array('Message.created' => 'DESC'),
             'recursive' => -1
         ));
+
+        foreach ($messages as &$message) {
+            $message['Message']['created'] = date('H:i A - F d, Y', strtotime($message['Message']['created']));
+        }
         echo json_encode(array('messages' => $messages));
     }
 }
